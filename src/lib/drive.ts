@@ -7,11 +7,6 @@ function extractDriveId(url: string): string | null {
   return null;
 }
 
-export function driveImageUrl(url: string): string {
-  const id = extractDriveId(url);
-  return id ? `https://drive.google.com/uc?export=view&id=${id}` : url;
-}
-
 export function drivePreviewUrl(url: string): string {
   const id = extractDriveId(url);
   return id ? `https://drive.google.com/file/d/${id}/preview` : url;

@@ -4,23 +4,26 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { siteConfig } from "@/lib/site-config";
+import type { Locale } from "@/i18n/config";
+import type { Dictionary } from "@/i18n/dictionaries";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
-const links = [
-  { href: "/", label: "হোম" },
-  { href: "/about", label: "মসজিদ সম্পর্কে" },
-  { href: "/fund", label: "ফান্ড ডিটেইলস" },
-  { href: "/gallery", label: "গ্যালারি" },
-  { href: "/documents", label: "ডকুমেন্টস" },
-];
-
-export default function Navbar() {
+export default function Navbar({ locale, dict }: { locale: Locale; dict: Dictionary }) {
   const [open, setOpen] = useState(false);
+
+  const links = [
+    { href: `/${locale}`, label: dict.nav.home },
+    { href: `/${locale}/about`, label: dict.nav.about },
+    { href: `/${locale}/fund`, label: dict.nav.fund },
+    { href: `/${locale}/gallery`, label: dict.nav.gallery },
+    { href: `/${locale}/documents`, label: dict.nav.documents },
+  ];
 
   return (
     <header className="sticky top-0 z-50 border-b border-emerald-100 bg-white/90 backdrop-blur">
       <nav className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
         <Link
-          href="/"
+          href={`/${locale}`}
           onClick={() => setOpen(false)}
           className="flex items-center gap-2"
         >
@@ -49,30 +52,37 @@ export default function Navbar() {
           ))}
         </ul>
 
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-label="মেনু খুলুন/বন্ধ করুন"
-          aria-expanded={open}
-          className="flex h-10 w-10 items-center justify-center rounded-full text-emerald-900 transition hover:bg-emerald-50 md:hidden"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-6 w-6"
+        <div className="hidden items-center md:flex">
+          <LanguageSwitcher locale={locale} />
+        </div>
+
+        <div className="flex items-center gap-2 md:hidden">
+          <LanguageSwitcher locale={locale} />
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-label="Menü"
+            aria-expanded={open}
+            className="flex h-10 w-10 items-center justify-center rounded-full text-emerald-900 transition hover:bg-emerald-50"
           >
-            {open ? (
-              <path d="M6 6l12 12M18 6L6 18" />
-            ) : (
-              <path d="M4 7h16M4 12h16M4 17h16" />
-            )}
-          </svg>
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-6 w-6"
+            >
+              {open ? (
+                <path d="M6 6l12 12M18 6L6 18" />
+              ) : (
+                <path d="M4 7h16M4 12h16M4 17h16" />
+              )}
+            </svg>
+          </button>
+        </div>
       </nav>
 
       {open && (

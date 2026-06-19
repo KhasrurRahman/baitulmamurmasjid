@@ -2,8 +2,61 @@
 
 > এই ফাইল প্রতি সেশনে Claude নিজেই আপডেট করবে (নির্দেশনা: CLAUDE.md দেখুন)। সবচেয়ে সাম্প্রতিক অবস্থা সবার উপরে।
 
-## অবস্থা: Favicon + social share (OG/Twitter card) মেটাডেটা সেট করা হয়েছে — domain কেনা ও real Sheet/asset বসানো বাকি
+## অবস্থা: গ্যালারি সিম্পল প্লেইন গ্রিডে রিভার্ট করা হয়েছে (lightbox বাতিল, ইউজারের অনুরোধে) — Vercel-এ deploy/env var বসানো বাকি
 তারিখ: 2026-06-19
+
+### সাম্প্রতিক আপডেট: lightbox বাতিল, ভিডিও সরাসরি inline embed
+- ইউজার "still having the same issue" রিপোর্ট করার পর জিজ্ঞেস করে কনফার্ম করা হয়েছে এটা **লোকাল dev সার্ভারে** ঘটছিল (Vercel-এ না, যা এখনও deploy-ই হয়নি)।
+- ডিবাগ করে কনফার্ম করা হয়েছে যে `driveThumbnailUrl()` (আগের সেশনের ফিক্স) আসলে ঠিকভাবেই কাজ করছে — curl দিয়ে সরাসরি bytes ফেচ করে দেখা গেছে real `image/jpeg`, 1000x1405px, ১৩৭KB ফাইল আসছে। তবে dev সার্ভার পুরনো প্রসেস/পোর্ট কনফ্লিক্টে (3000 বনাম 3001) আটকে ছিল, যা সম্ভবত আগের broken-image ধারণার একটা কারণ।
+- **ইউজারের সরাসরি অনুরোধ অনুযায়ী UI সিম্প্লিফাই করা হয়েছে**: click-to-zoom lightbox সম্পূর্ণ বাদ দেওয়া হয়েছে (ইউজার চাননি)। `src/components/MediaGrid.tsx` ডিলিট করা হয়েছে।
+- `src/components/DriveFolderGallery.tsx` এখন আগের মতো সিম্পল async Server Component (কোনো client/state লাগে না):
+  - **ছবি**: প্লেইন non-interactive `grid-cols-2 sm:3 md:4` গ্রিড, aspect-square + object-cover, ক্লিক করার কিছু নেই (just placed, "আগের মতো")।
+  - **ভিডিও**: আলাদা সেকশনে, প্রতিটা ভিডিও সরাসরি একটা `grid-cols-1 sm:2` গ্রিডে Drive `/preview` iframe হিসেবে inline বসানো থাকে (aspect-video, নেটিভ play কন্ট্রোলস সহ) — ক্লিক করে আলাদা মোডাল খোলার প্রয়োজন নেই, সরাসরি প্লে করা যায়।
+- `src/lib/drive-api.ts`-এ `DriveFile` টাইপ থেকে `largeUrl` ফিল্ড বাদ দেওয়া হয়েছে (lightbox না থাকায় আর লাগছে না), শুধু `thumbnailUrl` (`driveThumbnailUrl`, স্থায়ী non-expiring endpoint) থেকে যাচ্ছে।
+- বিল্ড + ফ্রেশ dev সার্ভার দিয়ে যাচাই করা হয়েছে: `/gallery`-এ ১২৬টা thumbnail রেফারেন্স, এবং একটা স্যাম্পল URL সরাসরি curl করে real JPEG bytes (1000x1405px) কনফার্ম করা হয়েছে।
+- **মনে রাখার বিষয়**: এই প্রজেক্ট এখনো GitHub-এ push হয়নি এবং Vercel-এ deploy হওয়া কোডে `DRIVE_API_KEY` env var নেই — তাই লাইভ সাইটে (baitulmamurmasjid20.vercel.app) গ্যালারি এখনো পুরনো/ভাঙা অবস্থায় থাকবে যতক্ষণ না (১) কোড push হয়, (২) Vercel project settings-এ `DRIVE_API_KEY` env var যুক্ত করে redeploy করা হয়।
+
+### সাম্প্রতিক বাগ-ফিক্স: গ্যালারিতে broken image icon (cached page-এ ছবি লোড হচ্ছিল না)
+- **সমস্যা**: হোমপেজ/গ্যালারিতে ছবির বদলে broken-image "?" আইকন দেখাচ্ছিল (Vercel-এ ডিপ্লয়ের পরে), যেখানে আগে লোকাল টেস্টে ঠিকঠাক কাজ করছিল।
+- **রুট কজ**: Drive API-র `files.list` রেসপন্সে যে `thumbnailLink` পাওয়া যায় সেটা একটা **সাময়িক signed URL** — অল্প সময় পরেই এক্সপায়ার হয়ে যায়। যেহেতু আমরা এই URL-টা সরাসরি স্ট্যাটিক HTML-এ বেক করে রাখছিলাম (ISR দিয়ে ১ ঘণ্টা cache), build/regenerate-এর কিছুক্ষণ পর কেউ পেজ ভিজিট করলে সেই বেক করা URL এক্সপায়ার হয়ে যেত → ব্রাউজার ছবি লোড করতে পারত না।
+- **সমাধান**: `src/lib/drive-api.ts`-এ `resizeThumbnail()`-এর বদলে `driveThumbnailUrl(fileId, size)` হেল্পার লেখা হয়েছে যেটা Drive-এর স্থায়ী এন্ডপয়েন্ট `https://drive.google.com/thumbnail?id=FILE_ID&sz=wSIZE` রিটার্ন করে। এই endpoint-টা প্রতিবার রিকোয়েস্টে **ব্রাউজার থেকে hit হওয়ার সময়** একটা ফ্রেশ signed `lh3.googleusercontent.com` URL-এ ৩০২ রিডাইরেক্ট করে — তাই স্ট্যাটিক HTML যতই পুরনো হোক, ছবি সবসময় কাজ করবে (curl দিয়ে যাচাই করা হয়েছে: redirect ৩০২ → fresh URL → ২০০ OK)।
+- `files.list` API কলের `fields` প্যারামিটার থেকে `thumbnailLink` বাদ দেওয়া হয়েছে (আর লাগছে না, শুধু `id, name, mimeType` যথেষ্ট)।
+- **শিক্ষা — ভবিষ্যতের জন্য**: Drive API-র `thumbnailLink` ফিল্ড কখনো সরাসরি কোনো cached/static HTML-এ বেক করা উচিত না — সবসময় `drive.google.com/thumbnail?id=...` বা `drive.google.com/uc?id=...` -এর মতো স্থায়ী/non-expiring পাবলিক এন্ডপয়েন্ট ব্যবহার করতে হবে।
+- বিল্ড সফল, `.next/server/app/gallery.html`-এ ২০১টা `drive.google.com/thumbnail?id=...` রেফারেন্স কনফার্ম করা হয়েছে, এবং স্যাম্পল URL সরাসরি curl করে ২০০ OK (redirect সহ) পাওয়া গেছে।
+
+### সাম্প্রতিক আপডেট: লাইটবক্স (click-to-zoom) + একই ফোল্ডারে ভিডিও অটো-ডিটেকশন
+- ইউজার রিপোর্ট করেছেন: (১) ছবিতে ক্লিক করে বড় করে দেখার কোনো উপায় ছিল না, (২) photos ফোল্ডারেই কিছু ভিডিও আছে যা আগে miss হয়ে যাচ্ছিল কারণ `videosFolderId` খালি ছিল।
+- **ভিডিও ফিক্স**: Drive API দিয়ে সরাসরি চেক করে কনফার্ম করা হয়েছে যে photos ফোল্ডারে (`1E1qG58dE_PI65mqyBfKh7jskB3b1qVZ-`) ৪টা `.mp4` ভিডিও আছে। `src/lib/site-config.ts`-এ `videosFolderId` এখন ডিফল্টভাবে `photosFolderId`-এর সমান (IIFE দিয়ে কম্পিউট করা হয়) — অর্থাৎ আলাদা ভিডিও ফোল্ডার env var না দিলে একই ফোল্ডার থেকেই `mimeType contains 'video/'` কুয়েরি দিয়ে ভিডিও বের করা হবে। ভবিষ্যতে আলাদা ভিডিও ফোল্ডার বানালে `NEXT_PUBLIC_DRIVE_VIDEOS_FOLDER_ID` সেট করে override করা যাবে।
+- **লাইটবক্স যুক্ত**: নতুন client component `src/components/MediaGrid.tsx` — গ্রিডের প্রতিটা থাম্বনেইল এখন ক্লিকেবল বাটন (আগে শুধু `<div>` ছিল), ক্লিক করলে ফুলস্ক্রিন মোডাল ওভারলে খোলে: ছবির জন্য বড় সাইজ ইমেজ (`largeUrl`, `=s1600`), ভিডিওর জন্য Drive `/preview` iframe (নেটিভ প্লে কন্ট্রোলস সহ)। Prev/Next আরো (একাধিক আইটেম থাকলে), Escape/←/→ কীবোর্ড সাপোর্ট, backdrop ক্লিকে বন্ধ হয়, body scroll lock করা থাকে মোডাল খোলা অবস্থায়।
+- `src/lib/drive-api.ts`-এ `DriveFile` টাইপে নতুন ফিল্ড `largeUrl` (thumbnailLink resize করে `=s1600`) যুক্ত হয়েছে লাইটবক্সের জন্য, পাশাপাশি আগের `thumbnailUrl` (`=s1000`) গ্রিড থাম্বনেইলের জন্য রয়ে গেছে।
+- `src/components/DriveFolderGallery.tsx` এখন simplified — শুধু ডেটা fetch করে (Server Component) এবং `MediaGrid`-কে items পাস করে দেয় (Client Component, interactivity-এর জন্য আলাদা করা হয়েছে যাতে fetch সার্ভারে থাকে, state ক্লায়েন্টে)।
+- বিল্ড + `next start` দিয়ে যাচাই করা হয়েছে — `/gallery`-এ ১৩৪টা `=s1000` ছবি-থাম্বনেইল ও ৮টা `.mp4` রেফারেন্স (৪টা ভিডিও ফাইল, প্রতিটার জন্য থাম্বনেইল+iframe src রেফারেন্স) সঠিকভাবে রেন্ডার হচ্ছে, কোনো "এখনো কোনো..." placeholder টেক্সট নেই।
+
+### সাম্প্রতিক আপডেট: Drive embed iframe থেকে Drive API-ভিত্তিক custom grid-এ migrate
+- আগের সমাধান (`embeddedfolderview` iframe) Google-এর নিজস্ব UI দেখাত যেখানে ছবিগুলো mixed/অসমান আকারে আসছিল (cross-origin iframe হওয়ায় CSS দিয়ে style করা সম্ভব ছিল না) — ইউজার এটা পছন্দ করেননি।
+- **নতুন সমাধান**: Google Drive API v3 (`files.list`) দিয়ে ফোল্ডারের প্রতিটা ফাইলের `thumbnailLink` সরাসরি fetch করে, নিজেদের ডিজাইনে (aspect-square, object-cover, uniform grid) রেন্ডার করা হচ্ছে — ঠিক আগের custom gallery design-এর মতোই, কিন্তু এখনো Drive ফোল্ডার-সিঙ্ক করা (auto-update, কোনো CSV/per-file লিংক লাগে না)।
+- **API key সেটআপ**: ইউজার Google Cloud Console-এ একটা প্রজেক্ট বানিয়ে Drive API enable করে API key জেনারেট করেছেন। **গুরুত্বপূর্ণ শিক্ষা**: প্রথমে key-টা "Application restrictions → Websites (HTTP referrer)" দিয়ে রেস্ট্রিক্ট করা হয়েছিল, কিন্তু সেটা ব্যর্থ হয় কারণ আমাদের fetch হয় **server-side** (Vercel/Node) থেকে, যেখানে কোনো HTTP Referer header থাকে না — Google `API_KEY_HTTP_REFERRER_BLOCKED` (403) এরর দিত। সমাধান: Application restriction **"None"**-এ পরিবর্তন করা হয়েছে (API restriction এখনও "Google Drive API"-তে আটকানো আছে, তাই key অন্য কোনো Google API-তে ব্যবহার করা যাবে না — নিরাপদ)। **ভবিষ্যতে কোনো নতুন Google API key server-side fetch-এর জন্য বানালে referrer-restriction ব্যবহার করা যাবে না, "None" বা IP restriction ব্যবহার করতে হবে।**
+- `.env.local`-এ `DRIVE_API_KEY=AIzaSyA8UWP-tKTwwj72TMu4F7kl5uatx_7dCd8` সেট করা আছে (গিট-ইগনোর্ড, কমিট হয়নি) — `src/lib/site-config.ts`-এ এই env var **ইচ্ছাকৃতভাবে `NEXT_PUBLIC_` প্রিফিক্স ছাড়া** রাখা হয়েছে যাতে এটা ব্রাউজার বান্ডলে কখনো না যায়।
+- নতুন ফাইল `src/lib/drive-api.ts` — `getDrivePhotos(folderId)` / `getDriveVideos(folderId)`, `mimeType contains 'image/'` বা `'video/'` কুয়েরি দিয়ে Drive API কল করে, pagination handle করে (max ৫ পেজ = ৫০০ ফাইল), `thumbnailLink`-এর সাইজ প্যারামিটার `=s220` থেকে `=s1000`-এ রিসাইজ করে (resizeThumbnail হেল্পার)। fetch-এ `next.revalidate` ISR cache (১ ঘণ্টা) ব্যবহার করা হচ্ছে।
+- `src/components/DriveFolderGallery.tsx` সম্পূর্ণ রিরাইট — এখন এটা একটা async Server Component যেটা সরাসরি `getDrivePhotos`/`getDriveVideos` কল করে এবং uniform `grid-cols-2 sm:3 md:4` গ্রিডে aspect-square থাম্বনেইল রেন্ডার করে। ভিডিও আইটেমে একটা প্লে-বাটন ওভারলে আইকন বসানো আছে (থাম্বনেইল থেকেই ভিডিও চেনার জন্য)। props পরিবর্তন: আগে `title`/`heightClassName` ছিল, এখন `kind: "image"|"video"` এবং অপশনাল `limit` (হোমপেজ প্রিভিউয়ের জন্য ৮টা পর্যন্ত)।
+- `src/lib/drive.ts` থেকে অব্যবহৃত `driveFolderEmbedUrl()` বাদ দেওয়া হয়েছে (iframe পদ্ধতি বাতিল হওয়ায়)।
+- `.env.example`-এ `DRIVE_API_KEY=` (কমেন্ট সহ ব্যাখ্যা) যুক্ত করা হয়েছে।
+- বিল্ড + `next start` দিয়ে যাচাই করা হয়েছে — `/gallery`-এর HTML-এ ৬৩টা real `lh3.googleusercontent.com` থাম্বনেইল URL (`=s1000` সাইজ) পাওয়া গেছে, placeholder card আর দেখাচ্ছে না।
+
+### আগের আপডেট: Drive ফোল্ডার-ভিত্তিক গ্যালারি (প্রাথমিক iframe সংস্করণ, এখন বাতিল/সুপারসিডেড)
+
+### সাম্প্রতিক আপডেট: Drive ফোল্ডার-ভিত্তিক গ্যালারি (CSV বাতিল)
+- ইউজার একটা পাবলিক Drive ফোল্ডার লিংক দিয়েছেন (https://drive.google.com/drive/folders/1E1qG58dE_PI65mqyBfKh7jskB3b1qVZ-) — WebFetch দিয়ে চেক করে দেখা গেছে এতে ৫০টা ছবি (JPEG) আছে, কোনো ভিডিও নেই এখনো।
+- **সিদ্ধান্ত**: Drive ফোল্ডারের individual file ID বের করা সম্ভব না (Drive folder page heavily JS-rendered, WebFetch দিয়ে file listing পাওয়া যায় কিন্তু data-id attribute পাওয়া যায় না)। তাই per-file CSV/link পদ্ধতির বদলে Google-এর `https://drive.google.com/embeddedfolderview?id=FOLDER_ID#grid` iframe embed ব্যবহার করা হয়েছে — পুরো ফোল্ডার একসাথে গ্রিড-ভিউ এ embed হয়, ফোল্ডারে নতুন ছবি/ভিডিও যুক্ত করলে সাইটে অটোমেটিক আপডেট হয়, কোনো ম্যানুয়াল CSV/লিংক এন্ট্রি লাগে না।
+- **Photos vs Videos আলাদা করার সমাধান**: Drive-এর folder embed এক ফোল্ডারের মধ্যে image/video আলাদা করতে দেয় না — তাই দুইটা আলাদা ফোল্ডার ব্যবহার করার সিদ্ধান্ত হয়েছে: একটা Photos-এর জন্য (এখন আছে), একটা Videos-এর জন্য (ভবিষ্যতে ইউজার বানাবেন)।
+- `src/lib/site-config.ts`-এ `drive: { photosFolderId, videosFolderId }` যুক্ত — `photosFolderId` হার্ডকোড করা আছে `1E1qG58dE_PI65mqyBfKh7jskB3b1qVZ-` ডিফল্ট হিসেবে (env var `NEXT_PUBLIC_DRIVE_PHOTOS_FOLDER_ID` দিয়ে override করা যায়), `videosFolderId` খালি (`NEXT_PUBLIC_DRIVE_VIDEOS_FOLDER_ID`)।
+- `src/lib/drive.ts`-এ `driveFolderEmbedUrl(folderId)` হেল্পার যুক্ত।
+- নতুন কম্পোনেন্ট `src/components/DriveFolderGallery.tsx` — folderId খালি থাকলে dashed-border "এখনো যুক্ত করা হয়নি" placeholder card দেখায়, না হলে rounded card-এ iframe embed করে।
+- `src/app/gallery/page.tsx` সম্পূর্ণ রিরাইট — এখন "ছবি" ও "ভিডিও" দুইটা আলাদা সেকশন, প্রতিটায় `DriveFolderGallery`।
+- হোম পেজের গ্যালারি প্রিভিউ সেকশনও (`src/app/page.tsx`) আগের CSV-ভিত্তিক ৬-ছবির গ্রিডের বদলে একই `DriveFolderGallery` (ছোট height) ব্যবহার করছে।
+- **ক্লিনআপ**: `src/lib/sheet.ts` থেকে `GalleryItem` টাইপ, `mockGallery`, `getGallery()` ফাংশন বাদ দেওয়া হয়েছে (আর ব্যবহার হচ্ছে না)। `src/lib/drive.ts` থেকে অব্যবহৃত `driveImageUrl()` বাদ দেওয়া হয়েছে। `.env.example` থেকে `SHEET_GALLERY_CSV_URL` বাদ দিয়ে `NEXT_PUBLIC_DRIVE_PHOTOS_FOLDER_ID`/`NEXT_PUBLIC_DRIVE_VIDEOS_FOLDER_ID` যুক্ত করা হয়েছে।
+- `npm run build` সফল, `npm run start` দিয়ে যাচাই করা হয়েছে যে home ও gallery পেজ দুটোতেই সঠিক `embeddedfolderview?id=1E1qG58dE_PI65mqyBfKh7jskB3b1qVZ-` iframe রেন্ডার হচ্ছে।
+- **বাকি**: ইউজার ভিডিওর জন্য আলাদা Drive ফোল্ডার বানিয়ে লিংক দিলে `videosFolderId`/env var সেট করতে হবে (placeholder card দেখাচ্ছে এখন)। `donations`/`documents` ডেটা এখনো আগের CSV/mock পদ্ধতিতেই আছে — শুধু gallery বদলেছে।
 
 ### সাম্প্রতিক আপডেট: Favicon ও social-share মেটা ট্যাগ
 - `sharp` (ইতিমধ্যে next-এর dependency হিসেবে ইনস্টল ছিল) দিয়ে স্ক্রিপ্ট চালিয়ে `public/logo.png` থেকে `src/app/icon.png` (512x512, সাদা ব্যাকগ্রাউন্ডে প্যাডেড লোগো) এবং `src/app/apple-icon.png` (180x180) জেনারেট করা হয়েছে — Next.js App Router-এর ফাইল-কনভেনশন অনুযায়ী এগুলো অটো favicon/apple-touch-icon হিসেবে সার্ভ হয় (`npm run build`-এ `/icon.png`, `/apple-icon.png` রুট দেখা গেছে)। পুরনো ডিফল্ট `src/app/favicon.ico` ডিলিট করা হয়েছে যাতে কনফ্লিক্ট না হয়।

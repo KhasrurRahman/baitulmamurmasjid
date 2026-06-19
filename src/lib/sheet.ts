@@ -8,13 +8,9 @@ export type Donation = {
   method: string;
 };
 
-export type GalleryItem = {
-  driveLink: string;
-  caption: string;
-};
-
 export type DocumentItem = {
-  driveLink: string;
+  driveLink?: string;
+  fileUrl?: string;
   title: string;
   description: string;
 };
@@ -42,17 +38,6 @@ const mockDonations: Donation[] = [
   { date: "2026-06-10", donor: "ফাতিমা খাতুন", amount: 7500, method: "ব্যাংক ট্রান্সফার" },
 ];
 
-const mockGallery: GalleryItem[] = [
-  { driveLink: "", caption: "মসজিদের প্রবেশপথ" },
-  { driveLink: "", caption: "নামাজের কক্ষ" },
-  { driveLink: "", caption: "ভবনের বাহিরের দৃশ্য" },
-];
-
-const mockDocuments: DocumentItem[] = [
-  { driveLink: "", title: "ক্রয় চুক্তিপত্র (খসড়া)", description: "মসজিদ ভবন ক্রয় সম্পর্কিত চুক্তির খসড়া কপি" },
-  { driveLink: "", title: "জমির দলিল", description: "জমির মালিকানা সম্পর্কিত দলিল" },
-];
-
 export async function getDonations(): Promise<Donation[]> {
   const rows = await fetchCsv(siteConfig.sheet.donationsCsvUrl);
   if (rows.length === 0) return mockDonations;
@@ -64,18 +49,9 @@ export async function getDonations(): Promise<Donation[]> {
   }));
 }
 
-export async function getGallery(): Promise<GalleryItem[]> {
-  const rows = await fetchCsv(siteConfig.sheet.galleryCsvUrl);
-  if (rows.length === 0) return mockGallery;
-  return rows.map((row) => ({
-    driveLink: row.drive_link ?? "",
-    caption: row.caption ?? "",
-  }));
-}
-
+// CSV-এ থাকা যেকোনো অতিরিক্ত ডকুমেন্ট — মূল ৪টা পরিচিত ডকুমেন্ট (চুক্তি, আহ্বান পত্র) dictionary-তে আছে (i18n/dictionaries.ts)
 export async function getDocuments(): Promise<DocumentItem[]> {
   const rows = await fetchCsv(siteConfig.sheet.documentsCsvUrl);
-  if (rows.length === 0) return mockDocuments;
   return rows.map((row) => ({
     driveLink: row.drive_link ?? "",
     title: row.title ?? "",

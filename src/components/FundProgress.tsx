@@ -12,7 +12,9 @@ import {
   YAxis,
 } from "recharts";
 import type { Donation } from "@/lib/sheet";
-import { formatBengaliNumber as formatAmount } from "@/lib/format";
+import { formatNumber } from "@/lib/format";
+import type { Locale } from "@/i18n/config";
+import type { Dictionary } from "@/i18n/dictionaries";
 
 function monthlySeries(donations: Donation[]) {
   const totals = new Map<string, number>();
@@ -33,27 +35,32 @@ export default function FundProgress({
   donations,
   target,
   currency,
+  locale,
+  dict,
 }: {
   donations: Donation[];
   target: number;
   currency: string;
+  locale: Locale;
+  dict: Dictionary;
 }) {
   const collected = donations.reduce((sum, d) => sum + d.amount, 0);
   const remaining = Math.max(target - collected, 0);
   const percent = Math.min(Math.round((collected / target) * 100), 100);
   const series = monthlySeries(donations);
+  const formatAmount = (value: number) => formatNumber(value, locale);
 
   return (
     <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <p className="text-sm text-emerald-700">সংগৃহীত</p>
+          <p className="text-sm text-emerald-700">{dict.fund.collected}</p>
           <p className="text-2xl font-bold text-emerald-800 sm:text-3xl">
             {formatAmount(collected)} {currency}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-stone-500">লক্ষ্য</p>
+          <p className="text-sm text-stone-500">{dict.fund.target}</p>
           <p className="text-lg font-semibold text-stone-700 sm:text-xl">
             {formatAmount(target)} {currency}
           </p>
@@ -67,14 +74,18 @@ export default function FundProgress({
         />
       </div>
       <div className="mt-1 flex justify-between text-xs text-stone-500">
-        <span>{percent}% সংগৃহীত</span>
-        <span>বাকি {formatAmount(remaining)} {currency}</span>
+        <span>
+          {percent}{dict.fund.percentCollected}
+        </span>
+        <span>
+          {dict.fund.remaining}: {formatAmount(remaining)} {currency}
+        </span>
       </div>
 
       <div className="mt-6 grid gap-6 sm:grid-cols-2">
         <div className="h-48 sm:h-56">
-          <p className="mb-2 text-sm font-medium text-stone-600">মাসিক অনুদান</p>
-          <ResponsiveContainer width="100%" height="100%">
+          <p className="mb-2 text-sm font-medium text-stone-600">{dict.fund.monthlyChart}</p>
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <BarChart data={series} margin={{ left: -16, right: 4, top: 4, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#ecfdf5" />
               <XAxis dataKey="month" tick={{ fontSize: 10 }} />
@@ -85,8 +96,8 @@ export default function FundProgress({
           </ResponsiveContainer>
         </div>
         <div className="h-48 sm:h-56">
-          <p className="mb-2 text-sm font-medium text-stone-600">সামগ্রিক ট্রেন্ড</p>
-          <ResponsiveContainer width="100%" height="100%">
+          <p className="mb-2 text-sm font-medium text-stone-600">{dict.fund.trendChart}</p>
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <LineChart data={series} margin={{ left: -16, right: 4, top: 4, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#ecfdf5" />
               <XAxis dataKey="month" tick={{ fontSize: 10 }} />
