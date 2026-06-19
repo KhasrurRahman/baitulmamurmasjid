@@ -3,7 +3,8 @@ import type { Locale } from "./config";
 export type DocumentEntry = {
   title: string;
   description: string;
-  fileUrl: string;
+  fileUrl?: string;
+  driveLink?: string;
 };
 
 const de = {
