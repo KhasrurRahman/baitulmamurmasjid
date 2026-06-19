@@ -2,8 +2,26 @@
 
 > এই ফাইল প্রতি সেশনে Claude নিজেই আপডেট করবে (নির্দেশনা: CLAUDE.md দেখুন)। সবচেয়ে সাম্প্রতিক অবস্থা সবার উপরে।
 
-## অবস্থা: গ্যালারি সিম্পল প্লেইন গ্রিডে রিভার্ট করা হয়েছে (lightbox বাতিল, ইউজারের অনুরোধে) — Vercel-এ deploy/env var বসানো বাকি
+## অবস্থা: পুরো সাইট bilingual (German/Bangla, i18n routing) + real fund/document data — Vercel-এ deploy/env var বসানো বাকি
 তারিখ: 2026-06-19
+
+### সাম্প্রতিক বড় আপডেট: i18n (German ডিফল্ট + Bangla সুইচ) + real ডেটা + UI ফিক্স
+- **i18n আর্কিটেকচার**: পুরো `src/app` রিস্ট্রাকচার করে `src/app/[locale]/...` এর নিচে নেওয়া হয়েছে (page, about, fund, gallery, documents, layout সব)। `src/i18n/config.ts` (`locales = ["de","bn"]`, `defaultLocale = "de"`, `isLocale()`), `src/i18n/dictionaries.ts` (de + bn dictionary অবজেক্ট, `getDictionary(locale)`)।
+- `src/proxy.ts` (Next.js 16-এ `middleware.ts` deprecated হয়ে `proxy.ts` নাম + `export function proxy()` হয়েছে) — locale prefix ছাড়া URL এলে `/de/...`-এ রিডাইরেক্ট করে।
+- `LanguageSwitcher.tsx` (client) — Navbar-এ DE/বাং টগল, বর্তমান pathname-এর locale segment বদলে নেভিগেট করে।
+- সব কম্পোনেন্ট (`Navbar`, `Footer`, `DepositCard`, `FundProgress`) এখন `dict`/`locale` prop নেয়, hardcoded বাংলা স্ট্রিং বাদ।
+- **আসল ডেটা** (ইউজারের দেওয়া আসল PDF/ছবি ডকুমেন্ট থেকে): `siteConfig.fund` — targetAmount **570000** (আগে placeholder 250000 ছিল), `purchaseDeadline: "2029-07-31"`, `renovationCost: 165000`, `monthlyPlanAmount: 100`, `planPeopleMin/Max: 100/150`, `founded: 2012`, `capacity: 180`। `siteConfig.deposit.bank` — আসল IBAN `AT41 2011 1821 3061 1600`, BIC `GIBAATWWXXX` (আগে placeholder ছিল)। বিকাশ/নগদ/PayPal/cash অপশন বাদ — সোর্স ডকুমেন্টে শুধু ব্যাংক অ্যাকাউন্টই উল্লেখ আছে।
+- **Documents পেজ**: ইউজার নিজে `public/docs/` ফোল্ডারে ৪টা real ফাইল রেখেছেন (`kauf_aufruf_de.pdf`, `kauf_aufruf_ar.pdf`, `kauf_aufruf_bn.pdf`, `mietvertrag_nachtrag.jpg`) — `dict.documents.items`-এ `fileUrl` ফিল্ড দিয়ে এগুলো রেফারেন্স করা আছে (German/Arabic/Bangla আহ্বান পত্র + ভাড়া চুক্তির Nachtrag)। পেজে `<object>` ট্যাগ দিয়ে in-page preview + ডাউনলোড বাটন। `getDocuments()` (CSV থেকে) আলাদাভাবে যেকোনো অতিরিক্ত ডকুমেন্ট অ্যাড করতে পারে (merge হয় dict items-এর পরে)।
+- **Fund পেজ-এ নতুন সেকশন**: প্রেক্ষাপট ও উদ্দেশ্য (চুক্তির বিস্তারিত), বর্তমান অর্থসংগ্রহ পরিকল্পনা, এবং "মূল তথ্য" ফ্যাক্ট-কার্ড (ক্রয়মূল্য/ডেডলাইন/সংস্কার খরচ/দাতা লক্ষ্য/মাসিক মিনিমাম) — এই কার্ডের ভ্যালুগুলো **dynamically compute করা হয়** `siteConfig.fund` + `formatNumber()`/`formatEuroDate()` থেকে, dictionary-তে শুধু label থাকে (hardcoded সংখ্যা স্ট্রিং না — ভবিষ্যতে target/deadline বদলালে এক জায়গায় (`site-config.ts`) বদলালেই সব জায়গায় আপডেট হবে)।
+- **নাম্বার ফরম্যাটিং বাগ ফিক্স**: ইউজার রিপোর্ট করেছিলেন বাংলা মোডে সংখ্যা "ঠিকমতো পড়া যায় না" — কারণ আগের `formatBengaliNumber()` বাংলা ডিজিট গ্লিফে (০-৯) কনভার্ট করত, যা ছোট/বোল্ড টেক্সটে পড়তে কষ্ট হয়। **সমাধান**: `src/lib/format.ts`-এ `formatNumber()` এখন সবসময় Latin digits ব্যবহার করে, শুধু গ্রুপিং স্টাইল locale-ভেদে আলাদা (German: 570.000, Bangla: ঐতিহ্যবাহী 2-2-3 গ্রুপিং কিন্তু Latin digit দিয়ে — 5,70,000)। নতুন `formatEuroDate(iso)` হেল্পার ISO ডেট থেকে DD.MM.YYYY বানায়।
+- **হোমপেজ হিরো ব্যানার ফিক্স**: ইউজার রিপোর্ট করেছিলেন পুরো ছবি অন্ধকার দেখাচ্ছিল (দুটো ওভারলে স্ট্যাক হয়ে আসছিল — vertical + horizontal gradient)। ফিক্স: horizontal ওভারলে সরিয়ে দেওয়া হয়েছে, vertical গ্রেডিয়েন্ট Tailwind-এর gradient-stop-position ক্লাস (`from-0%`, `via-45%`, `to-80%`) দিয়ে precisely কন্ট্রোল করা — এখন ছবির উপরের ~৮০% ক্লিয়ার/উজ্জ্বল থাকে, শুধু নিচের অংশে (যেখানে টেক্সট থাকে) ডার্ক গ্র্যাডিয়েন্ট।
+- **Recharts কনসোল ওয়ার্নিং** ("width(-1) and height(-1)..."): এটা recharts-এর পরিচিত benign warning — Next.js static prerendering pass-এ (কোনো রিয়েল ব্রাউজার লেআউট নেই তখন) এবং ব্রাউজারে প্রথম মাউন্টে ResizeObserver রিয়েল ডাইমেনশন পাওয়ার আগে এটা আসে, চার্ট ঠিকই রেন্ডার হয়। `ResponsiveContainer`-এ `debounce={50}` ও wrapper div-এ `w-full` যুক্ত করে frequency কমানো হয়েছে, কিন্তু এটা সম্পূর্ণ দূর করা সম্ভব না এবং functional bug না।
+- বিল্ড + `npm run start` দিয়ে যাচাই: সব রুট (`/de`, `/bn`, `/de/fund`, `/bn/fund`, `/de/documents`, `/bn/documents`, `/de/about`) 200 দিচ্ছে, ৪টা ডকুমেন্ট ফাইল সার্ভ হচ্ছে, fact card-এ এখন Latin digit (`5,70,000 ইউরো`) দেখাচ্ছে।
+
+### গুরুত্বপূর্ণ — পরের সেশনের জন্য
+- এই প্রজেক্ট এখনো GitHub-এ push হয়নি এবং Vercel-এ deploy হওয়া কোডে `DRIVE_API_KEY` env var নেই — লাইভ সাইট পুরনো কোড চালাচ্ছে। নতুন i18n স্ট্রাকচারের কারণে রুট পাল্টে গেছে (`/` এর বদলে `/de`, `/bn`) — Vercel deploy করার সময় ডোমেইন রুট রিডাইরেক্ট ঠিকমতো কাজ করছে কিনা যাচাই করতে হবে।
+- পেজ স্ট্রাকচার বদলেছে: পুরনো `src/app/page.tsx`, `src/app/about/page.tsx` ইত্যাদি এখন `src/app/[locale]/...`-এ। কোনো এক্সটার্নাল লিংক/বুকমার্ক যদি পুরনো পাথ (`/about`) পয়েন্ট করে, সেগুলো proxy.ts দিয়ে `/de/about`-এ রিডাইরেক্ট হবে (যেহেতু `/about` কোনো locale prefix না, ফলব্যাক ডিফল্টে যাবে)।
+- `siteConfig.fund.targetAmount` এখন বাস্তব ৫৭০,০০০ ইউরো (পুরনো placeholder ২৫০,০০০ থেকে বদলানো) — donations CSV/mock data-র সাথে তুলনা করলে progress bar বাস্তবসম্মত দেখাবে।
 
 ### সাম্প্রতিক আপডেট: lightbox বাতিল, ভিডিও সরাসরি inline embed
 - ইউজার "still having the same issue" রিপোর্ট করার পর জিজ্ঞেস করে কনফার্ম করা হয়েছে এটা **লোকাল dev সার্ভারে** ঘটছিল (Vercel-এ না, যা এখনও deploy-ই হয়নি)।

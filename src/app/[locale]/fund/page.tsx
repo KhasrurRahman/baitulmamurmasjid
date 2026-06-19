@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { siteConfig } from "@/lib/site-config";
 import { getDonations } from "@/lib/sheet";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, formatEuroDate } from "@/lib/format";
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import FundProgress from "@/components/FundProgress";
@@ -19,6 +19,21 @@ export default async function FundPage({
 
   const donations = await getDonations();
   const sorted = [...donations].sort((a, b) => b.date.localeCompare(a.date));
+
+  const fmt = (amount: number) => `${formatNumber(amount, locale)} ${dict.fund.currencyWord}`;
+  const facts = [
+    { label: dict.fund.factLabels.purchasePrice, value: fmt(siteConfig.fund.targetAmount) },
+    { label: dict.fund.factLabels.deadline, value: formatEuroDate(siteConfig.fund.purchaseDeadline) },
+    { label: dict.fund.factLabels.renovationCost, value: fmt(siteConfig.fund.renovationCost) },
+    {
+      label: dict.fund.factLabels.donorGoal,
+      value: `${formatNumber(siteConfig.fund.planPeopleMin, locale)}–${formatNumber(siteConfig.fund.planPeopleMax, locale)} ${dict.fund.peopleUnit}`,
+    },
+    {
+      label: dict.fund.factLabels.monthlyMin,
+      value: `${fmt(siteConfig.fund.monthlyPlanAmount)}/${dict.fund.monthUnit}`,
+    },
+  ];
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:py-12">
@@ -49,7 +64,7 @@ export default async function FundPage({
       <div className="mt-6 rounded-2xl border border-emerald-100 bg-white p-5">
         <h2 className="font-semibold text-emerald-800">{dict.fund.factsTitle}</h2>
         <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-          {dict.fund.facts.map((fact) => (
+          {facts.map((fact) => (
             <div
               key={fact.label}
               className="flex items-center justify-between gap-3 rounded-xl bg-emerald-50/60 px-4 py-3"
@@ -62,7 +77,7 @@ export default async function FundPage({
       </div>
 
       <div className="mt-8 sm:mt-10">
-        <DepositCard dict={dict} />
+        <DepositCard dict={dict} locale={locale} />
       </div>
 
       <div className="mt-8 sm:mt-10">

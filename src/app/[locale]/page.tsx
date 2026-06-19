@@ -36,8 +36,7 @@ export default async function HomePage({
           sizes="100vw"
           className="object-cover"
         />
-        <div className="absolute inset-0 bg-linear-to-t from-emerald-950/95 via-emerald-950/55 to-emerald-950/10" />
-        <div className="absolute inset-0 bg-linear-to-r from-emerald-950/60 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-emerald-950/90 from-0% via-emerald-950/35 via-45% to-transparent to-80%" />
 
         <div className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-10 sm:pb-14">
           <p className="text-sm font-medium uppercase tracking-widest text-emerald-200">
@@ -83,7 +82,7 @@ export default async function HomePage({
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-8 sm:py-12">
-        <DepositCard dict={dict} />
+        <DepositCard dict={dict} locale={locale} />
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-8 sm:py-12">

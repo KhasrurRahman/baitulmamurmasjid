@@ -83,9 +83,9 @@ export default function FundProgress({
       </div>
 
       <div className="mt-6 grid gap-6 sm:grid-cols-2">
-        <div className="h-48 sm:h-56">
+        <div className="h-48 w-full sm:h-56">
           <p className="mb-2 text-sm font-medium text-stone-600">{dict.fund.monthlyChart}</p>
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
             <BarChart data={series} margin={{ left: -16, right: 4, top: 4, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#ecfdf5" />
               <XAxis dataKey="month" tick={{ fontSize: 10 }} />
@@ -95,9 +95,9 @@ export default function FundProgress({
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div className="h-48 sm:h-56">
+        <div className="h-48 w-full sm:h-56">
           <p className="mb-2 text-sm font-medium text-stone-600">{dict.fund.trendChart}</p>
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
             <LineChart data={series} margin={{ left: -16, right: 4, top: 4, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#ecfdf5" />
               <XAxis dataKey="month" tick={{ fontSize: 10 }} />
