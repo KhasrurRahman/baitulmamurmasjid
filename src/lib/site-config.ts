@@ -34,13 +34,13 @@ export const siteConfig = {
       iban: "AT41 2011 1821 3061 1600",
       bic: "GIBAATWWXXX",
       bankName: "Erste Bank",
-      qrImage: "/deposit/bank-qr.svg",
+      qrImage: "/payment.png",
     },
   },
   sheet: {
     donationsCsvUrl: process.env.SHEET_DONATIONS_CSV_URL ?? "",
     documentsCsvUrl: process.env.SHEET_DOCUMENTS_CSV_URL ?? "",
-    revalidateSeconds: 3600,
+    revalidateSeconds: 300,
   },
   // গ্যালারি: পাবলিক Google Drive ফোল্ডার আইডি — ফোল্ডারে নতুন ছবি/ভিডিও যুক্ত করলে সাইটে অটো দেখা যাবে, কোনো CSV/লিংক ম্যানেজ করার প্রয়োজন নেই
   // ছবি ও ভিডিও একই ফোল্ডারে থাকতে পারে — videosFolderId আলাদা না দিলে photosFolderId থেকেই ভিডিও খোঁজা হয়

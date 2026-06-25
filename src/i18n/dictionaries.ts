@@ -89,6 +89,11 @@ const de = {
     targetLabel: "Ziel",
     deadlineLabel: "Frist",
     goalLabel: "Angestrebte Spender",
+    copyLabel: "Kopieren",
+    copiedLabel: "Kopiert!",
+    scanToPay: "Scannen zum Zahlen",
+    bankTabLabel: "Banküberweisung",
+    qrTabLabel: "QR-Code scannen",
   },
   gallery: {
     title: "Galerie",
@@ -120,12 +125,6 @@ const de = {
         title: "ক্রয়ে অংশগ্রহণের আহ্বান (বাংলা)",
         description: "বাংলা ভাষায় অফিসিয়াল আহ্বান পত্র।",
         fileUrl: "/docs/kauf_aufruf_bn.pdf",
-      },
-      {
-        title: "Nachtrag zum Mietvertrag (17.07.2025)",
-        description:
-          "Nachtrag zum Mietvertrag vom 27.3.2012 zwischen PRIMAINVEST GmbH (Vermieterin) und Austria Bangladesch Cultural Center / Baitul Mamur Masjid (Mieterin) — inkl. Vorkaufsrecht zum Kaufpreis von 570.000 € bis 31.07.2029.",
-        fileUrl: "/docs/mietvertrag_nachtrag.jpg",
       },
     ] as DocumentEntry[],
   },
@@ -219,6 +218,11 @@ const bn: typeof de = {
     targetLabel: "লক্ষ্য",
     deadlineLabel: "সময়সীমা",
     goalLabel: "লক্ষ্যভুক্ত দাতা",
+    copyLabel: "কপি করুন",
+    copiedLabel: "কপি হয়েছে!",
+    scanToPay: "স্ক্যান করে দান করুন",
+    bankTabLabel: "ব্যাংক ট্রান্সফার",
+    qrTabLabel: "QR কোড স্ক্যান",
   },
   gallery: {
     title: "গ্যালারি",
@@ -226,7 +230,7 @@ const bn: typeof de = {
     photosTitle: "ছবি",
     videosTitle: "ভিডিও",
     photosEmpty: "এখনো কোনো ছবির ফোল্ডার যুক্ত করা হয়নি।",
-    videosEmpty: "ভিডিও ফোল্ডার যুক্ত হলে এখানে দেখা যাবে — খুব শীঘ্রই আসছে।",
+    videosEmpty: "এখনো এই ফোল্ডারে কোনো ভিডিও যুক্ত করা হয়নি।",
   },
   documents: {
     title: "ডকুমেন্টস",
@@ -248,12 +252,6 @@ const bn: typeof de = {
         title: "خطاب للمساهمة في شراء مسجد (আরবি)",
         description: "অফিসিয়াল আহ্বান পত্রের আরবি সংস্করণ।",
         fileUrl: "/docs/kauf_aufruf_ar.pdf",
-      },
-      {
-        title: "ভাড়া চুক্তির সংযোজনী (Nachtrag zum Mietvertrag, ১৭.০৭.২০২৫)",
-        description:
-          "২৭.৩.২০১২ তারিখের ভাড়া চুক্তির সংযোজনী — PRIMAINVEST GmbH (ভাড়াদাতা) ও Austria Bangladesch Cultural Center / Baitul Mamur Masjid (ভাড়াটিয়া)-র মধ্যে — যাতে ৫৭০,০০০ ইউরো ক্রয়মূল্যে অগ্রক্রয়ের অধিকার (Vorkaufsrecht) ৩১.০৭.২০২৯ পর্যন্ত অন্তর্ভুক্ত আছে।",
-        fileUrl: "/docs/mietvertrag_nachtrag.jpg",
       },
     ] as DocumentEntry[],
   },
